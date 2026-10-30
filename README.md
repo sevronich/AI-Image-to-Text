@@ -24,6 +24,12 @@ The bridge binds only to 127.0.0.1. It allows requests only from the exact priva
 
 Do not expose either local port to the public internet. No tunnel, firewall opening, login service, or startup-at-boot task is installed. Runtime diagnostics are in `.local-qwen/model.log` and `.local-qwen/bridge-error.log`.
 
+### Installation status on the original PC
+
+During verification, Windows Code Integrity rejected the official llama.cpp runtime's unsigned `ggml-base.dll` with exit code `0xC0E90002` (Code Integrity events 3077/3033). Security policy was not changed. This blocks local inference before a model can be loaded. An administrator must review the runtime under the existing policy, or a trusted, signed runtime must be provided. Do not disable Windows protections to proceed.
+
+The model download was left incomplete, with partial files preserved in `.local-qwen/`. After resolving the runtime policy, rerun `npm run setup:qwen` to finish and verify the model, then launch it. The code and production build are verified; real Qwen inference and Khmer output quality are not yet verified on this PC.
+
 ## Architecture
 
 - **UI:** Next.js 16 + React 19, built and deployed through Vinext on Cloudflare Workers/Sites.

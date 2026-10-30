@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { describeWithQwen, MAX_REQUEST_BYTES, SITE_ORIGIN, QWEN_MODEL } from "../lib/qwen.mjs";
 
-export const ALLOWED_ORIGINS = new Set([SITE_ORIGIN, "http://127.0.0.1:5173", "http://localhost:5173"]);
+export const ALLOWED_ORIGINS = new Set([SITE_ORIGIN, "https://chitra-ai-studio-20261025.zanybowl20.chatgpt.site", "http://127.0.0.1:5173", "http://localhost:5173"]);
 
 export function createBridge({ generate = describeWithQwen, ready = async () => true, apiKey } = {}) {
   let busy = false;

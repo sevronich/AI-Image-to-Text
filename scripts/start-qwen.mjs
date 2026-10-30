@@ -29,5 +29,13 @@ const ready = async () => (await fetch("http://127.0.0.1:8081/health", { headers
 const bridge = createBridge({ apiKey, ready });
 bridge.requestTimeout = 330000;
 bridge.listen(8765, "127.0.0.1", () => console.log("Chitra Qwen bridge: http://127.0.0.1:8765 — model is loading."));
-child.on("exit", code => { console.error(`Vision runtime stopped (${code}). See .local-qwen/model.log.`); bridge.close(); process.exitCode = code || 0; });
+child.on("exit", code => {
+  if ((code >>> 0) === 0xC0E90002) {
+    console.error("Windows Code Integrity blocked an unsigned runtime DLL (0xC0E90002). Ask your administrator to review/approve the official llama.cpp runtime, or use a runtime that your existing policy trusts. Do not disable Windows security.");
+  } else {
+    console.error(`Vision runtime stopped (${code}). See .local-qwen/model.log.`);
+  }
+  bridge.close();
+  process.exitCode = code || 0;
+});
 for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { child.kill(); bridge.close(); });
