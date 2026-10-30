@@ -62,8 +62,22 @@ export function ImageDescriptionStudio() {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState("");
+  const [provider, setProvider] = useState<"qwen" | "openai">("qwen");
+  const [localState, setLocalState] = useState<"unknown" | "checking" | "ready" | "offline">("unknown");
+  const requestRef = useRef<AbortController | null>(null);
+  const promptDrafts = useRef({ km: "", en: "" });
+
+  const checkLocal = async () => {
+    setLocalState("checking");
+    try {
+      const response = await fetch("http://127.0.0.1:8765/health", { signal: AbortSignal.timeout(5000) });
+      const health = await response.json() as { ready?: boolean };
+      setLocalState(response.ok && health.ready ? "ready" : "offline");
+    } catch { setLocalState("offline"); }
+  };
 
   const loadFile = useCallback(async (file: File) => {
+    requestRef.current?.abort();
     setError("");
     if (!ACCEPTED_TYPES.includes(file.type)) {
       setError("សូមប្រើឯកសារ PNG, JPG, WEBP ឬ GIF ប៉ុណ្ណោះ។");
@@ -104,20 +118,32 @@ export function ImageDescriptionStudio() {
   };
   const analyze = async () => {
     if (!image) return;
+    const controller = new AbortController();
+    requestRef.current?.abort();
+    requestRef.current = controller;
     setStatus("loading"); setError(""); setResult(null);
     try {
-      const response = await fetch("/api/describe", {
+      const response = await fetch(provider === "qwen" ? "http://127.0.0.1:8765/describe" : "/api/describe", {
         method: "POST", headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({ image, preset, detail, customInstructions }),
       });
-      const payload = await response.json();
+      const payload = await response.json() as { description?: Result; model?: string; error?: string };
       if (!response.ok) throw new Error(payload.error || "ការវិភាគបរាជ័យ។");
+      if (!payload.description) throw new Error("Model មិនបានផ្តល់ការពិពណ៌នាទេ។");
       setResult(payload.description); setModel(payload.model || "Vision model");
+      promptDrafts.current = { ...payload.description.prompt };
       setPrompt(payload.description.prompt[language]); setStatus("success");
+      if (provider === "qwen") setLocalState("ready");
       window.setTimeout(() => document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
     } catch (cause) {
+      if (controller.signal.aborted) return;
       setStatus("error");
-      setError(cause instanceof Error ? cause.message : "មានបញ្ហាដែលមិនបានរំពឹងទុក។");
+      const unavailable = cause instanceof TypeError && provider === "qwen";
+      if (unavailable) setLocalState("offline");
+      setError(unavailable
+        ? "មិនអាចភ្ជាប់ Qwen លើកុំព្យូទ័រនេះបានទេ។ សូមបើក Start-Chitra-Qwen.cmd ហើយអនុញ្ញាត Local network access ក្នុង browser ប្រសិនបើមានសំណើ។"
+        : cause instanceof Error ? cause.message : "មានបញ្ហាដែលមិនបានរំពឹងទុក។");
     }
   };
   const copyText = async (text: string, key: string) => {
@@ -133,7 +159,7 @@ export function ImageDescriptionStudio() {
           <span className="brand-mark" aria-hidden="true"><Sparkles size={20} /></span>
           <span><strong>ចិត្រា</strong><small>IMAGE DESCRIPTION AI</small></span>
         </a>
-        <div className="privacy-pill"><ShieldCheck size={16} /><span>រូបភាពមិនត្រូវបានរក្សាទុក</span><small>Private by design</small></div>
+        <div className="privacy-pill"><ShieldCheck size={16} /><span>{provider === "qwen" ? "រូបភាពវិភាគលើកុំព្យូទ័រអ្នក" : "រូបភាពផ្ញើទៅ OpenAI ដើម្បីវិភាគ"}</span><small>{provider === "qwen" ? "LOCAL VISION" : "CLOUD VISION"}</small></div>
       </header>
 
       <section className="hero" id="top">
@@ -146,7 +172,7 @@ export function ImageDescriptionStudio() {
         <div className="panel upload-panel">
           <div className="panel-heading">
             <div><span className="step">01</span><h2>ដាក់រូបភាព</h2><small>ADD AN IMAGE</small></div>
-            {image && <button className="icon-btn" type="button" onClick={() => { setImage(null); setResult(null); setStatus("idle"); }} aria-label="លុបរូបភាព"><X size={18} /></button>}
+            {image && <button className="icon-btn" type="button" onClick={() => { requestRef.current?.abort(); setImage(null); setResult(null); setStatus("idle"); }} aria-label="លុបរូបភាព"><X size={18} /></button>}
           </div>
           <input ref={inputRef} className="sr-only" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onFileChange} />
           {!image ? (
@@ -173,6 +199,18 @@ export function ImageDescriptionStudio() {
 
         <div className="panel controls-panel">
           <div className="panel-heading"><div><span className="step">02</span><h2>កំណត់ការវិភាគ</h2><small>ANALYSIS SETTINGS</small></div></div>
+          <div className="model-control">
+            <label htmlFor="vision-provider">ម៉ូដែល <span>Vision model</span></label>
+            <select id="vision-provider" value={provider} disabled={status === "loading"} onChange={e => { setProvider(e.target.value as "qwen" | "openai"); setError(""); setStatus("idle"); setResult(null); }}>
+              <option value="qwen">Qwen3.5‑4B · លើកុំព្យូទ័រនេះ</option>
+              <option value="openai">OpenAI · Cloud API</option>
+            </select>
+            {provider === "qwen" && <div className="local-connection">
+              <p>ទាញយកពី <a href="https://huggingface.co/unsloth/Qwen3.5-4B-GGUF" target="_blank" rel="noreferrer">Hugging Face</a> · 4-bit · មិនចំណាយ OpenAI credits</p>
+              <div><span role="status">{localState === "ready" ? "● Qwen រួចរាល់" : localState === "checking" ? "កំពុងពិនិត្យ…" : localState === "offline" ? "○ មិនទាន់ភ្ជាប់ / កំពុងបើក model" : "○ សូមបើក local model ជាមុន"}</span><button type="button" onClick={checkLocal} disabled={localState === "checking"}>ពិនិត្យការភ្ជាប់</button></div>
+              <p>បើក <a href="/Start-Chitra-Qwen.cmd" download>Start-Chitra-Qwen.cmd</a> លើ PC ដែលបានដំឡើង។ បន្ទាប់មកចុចពិនិត្យការភ្ជាប់។</p>
+            </div>}
+          </div>
           <fieldset className="control-group">
             <legend>គោលបំណង <span>Prompt preset</span></legend>
             <div className="preset-grid">{presets.map((item) => (
@@ -198,13 +236,13 @@ export function ImageDescriptionStudio() {
           <button className="analyze-btn" type="button" disabled={!image || status === "loading"} onClick={analyze}>
             {status === "loading" ? <><LoaderCircle className="spin" size={20} /> កំពុងមើល និងសរសេរ…</> : <><Sparkles size={20} /> វិភាគរូបភាព <span>Analyze image</span><ArrowRight size={18} /></>}
           </button>
-          <p className="privacy-note"><ShieldCheck size={14} /> API key នៅតែ server-side; browser មិនអាចមើលឃើញទេ។</p>
+          <p className="privacy-note"><ShieldCheck size={14} /> {provider === "qwen" ? "រូបភាពផ្ញើតែទៅ local Qwen លើ PC របស់អ្នក។" : "API key សម្ងាត់នៅ server-side។ OpenAI API ត្រូវការ credits។"}</p>
         </div>
       </section>
 
       {status === "loading" && <section className="processing" aria-live="polite">
         <div className="scan-card"><div className="scan-line" /><ImageIcon size={30} /></div>
-        <div><strong>កំពុងពិនិត្យភស្តុតាងក្នុងរូបភាព</strong><span>Analyzing appearance, pose, composition, style and mood…</span></div>
+        <div><strong>កំពុងពិនិត្យភស្តុតាងក្នុងរូបភាព</strong><span>{provider === "qwen" ? "Qwen3.5‑4B is analyzing on your PC. Detailed bilingual output may take a few minutes." : "Analyzing appearance, pose, composition, style and mood…"}</span></div>
       </section>}
       {status === "error" && error && <section className="error-card" role="alert">
         <AlertCircle size={20} /><div><strong>មិនអាចបញ្ចប់ការវិភាគបានទេ</strong><p>{error}</p></div><button type="button" onClick={analyze}>សាកម្តងទៀត</button>
@@ -214,8 +252,8 @@ export function ImageDescriptionStudio() {
         <div className="results-heading">
           <div><span className="step">03</span><h2>លទ្ធផលពិពណ៌នា</h2><small>STRUCTURED DESCRIPTION · {model}</small></div>
           <div className="language-toggle" aria-label="ភាសាលទ្ធផល">
-            <button type="button" className={language === "km" ? "selected" : ""} onClick={() => { setLanguage("km"); setPrompt(result.prompt.km); }}>ខ្មែរ</button>
-            <button type="button" className={language === "en" ? "selected" : ""} onClick={() => { setLanguage("en"); setPrompt(result.prompt.en); }}>English</button>
+            <button type="button" className={language === "km" ? "selected" : ""} onClick={() => { setLanguage("km"); setPrompt(promptDrafts.current.km); }}>ខ្មែរ</button>
+            <button type="button" className={language === "en" ? "selected" : ""} onClick={() => { setLanguage("en"); setPrompt(promptDrafts.current.en); }}>English</button>
           </div>
         </div>
         <article className="summary-card">
@@ -235,7 +273,7 @@ export function ImageDescriptionStudio() {
         </div>
         <article className="prompt-card">
           <div className="prompt-heading"><div><Clipboard size={18} /><h3>Prompt អាចកែសម្រួលបាន<small>EDITABLE RECONSTRUCTION PROMPT</small></h3></div><button type="button" onClick={() => copyText(prompt, "prompt")}>{copied === "prompt" ? <><Check size={16} /> បានចម្លង</> : <><Copy size={16} /> ចម្លង Prompt</>}</button></div>
-          <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} aria-label="Editable prompt" rows={8} />
+          <textarea value={prompt} onChange={(e) => { setPrompt(e.target.value); promptDrafts.current[language] = e.target.value; }} aria-label="Editable prompt" rows={8} />
           <p>កែសម្រួលបានដោយសេរី មុនពេលយកទៅប្រើក្នុង image generator។</p>
         </article>
       </section>}
