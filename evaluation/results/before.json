@@ -1,0 +1,121 @@
+{
+  "label": "before",
+  "createdAt": "2026-10-31T12:39:02.633Z",
+  "results": [
+    {
+      "caseId": "anime-webp",
+      "sha256": "4a6f1386f69045027ba52372d4a92c3f890d62d954a87b77277c4cae65c987c7",
+      "detail": "deep",
+      "httpStatus": 200,
+      "elapsedSeconds": 22,
+      "validation": {
+        "passed": true,
+        "code": "valid"
+      },
+      "response": {
+        "description": {
+          "summary": "A digital illustration of a character with light blue hair and a layered outfit, posed against a neutral background.",
+          "sections": {
+            "appearance": "The character has shoulder-length, straight light blue hair with subtle shading and highlights. Their eyes are dark and almond-shaped, with a slight upward curve at the corners. A small earring is visible on the left earlobe. The facial expression includes a faint, closed-mouth smile and relaxed brows.",
+            "clothing": "The character wears a grey crop top with a white trim along the bottom edge. Over the top is an unbuttoned white long-sleeved shirt, open at the front. Below, they wear black shorts with white trim and a white drawstring at the waist.",
+            "pose": "The character is seated or crouching, with one hand resting near the chest and the other raised near the head. The body is angled slightly toward the viewer, with the torso turned to face forward.",
+            "composition": "The character is centered in the frame, occupying most of the vertical space. The background is a flat, neutral grey with a faint grid pattern. The edges of the figure are outlined with a white border, suggesting a cutout or sticker-like presentation.",
+            "style": "The image uses clean lines and soft gradients typical of digital anime-style art. Lighting appears even, with subtle shadows defining form. The overall aesthetic is polished and stylized.",
+            "mood": "The mood is calm and composed, with a gentle expression and relaxed posture. There is no overt emotion or tension conveyed through facial expression or body language."
+          },
+          "evidence": {
+            "confirmed": [
+              "The character has light blue hair and dark eyes.",
+              "They are wearing a grey crop top and black shorts with white trim.",
+              "A white shirt is worn open over the top.",
+              "The background is a flat grey with a faint grid pattern.",
+              "The character is posed with one hand near the chest and the other raised near the head."
+            ],
+            "uncertain": [
+              "The exact pose of the lower body is obscured by the frame edge.",
+              "The specific lighting source or direction cannot be determined from the image."
+            ]
+          },
+          "prompt": "Generate a digital illustration of a character with light blue hair and a layered outfit, posed against a neutral background."
+        },
+        "model": "Qwen3.5-4B-Q4_K_M",
+        "provider": "local",
+        "source": "unsloth/Qwen3.5-4B-GGUF"
+      },
+      "reference": {
+        "confirmed": [
+          "A single illustrated character has silvery light-blue layered hair.",
+          "An open white long-sleeved shirt is worn over a gray cropped top.",
+          "Black shorts have white trim and a white drawstring.",
+          "One hand is near the upper chest and another is raised beside the head.",
+          "A gray checkerboard pattern forms the background."
+        ],
+        "uncertain": [
+          "The seating surface is outside the frame.",
+          "The precise garment materials cannot be established."
+        ],
+        "notSupported": [
+          "A bed or a particular room",
+          "Personality or private emotions",
+          "Age or identity"
+        ]
+      }
+    },
+    {
+      "caseId": "shapes-png",
+      "sha256": "2121153910c639861e97b826f518a018ef67621cfa32fa126842f37a1c255a8e",
+      "detail": "deep",
+      "httpStatus": 200,
+      "elapsedSeconds": 16,
+      "validation": {
+        "passed": true,
+        "code": "valid"
+      },
+      "response": {
+        "description": {
+          "summary": "A minimalist composition featuring a solid red circle and a solid blue square on a plain white background.",
+          "sections": {
+            "appearance": "The image contains no human figures, animals, or organic forms. There are no visible faces, bodies, or biological traits to describe.",
+            "clothing": "No garments, fabrics, or wearable items are present in the visual field.",
+            "pose": "No figures are depicted, so no pose or body position can be observed.",
+            "composition": "A red circle occupies the left third of the frame, while a blue square sits in the right third; both shapes are vertically centered against a uniform white background.",
+            "style": "The image employs flat, solid colors with no gradients, textures, or shading, resulting in a clean, geometric, and abstract aesthetic.",
+            "mood": "The scene conveys a sense of calm neutrality through its lack of emotional cues, dynamic elements, or narrative content."
+          },
+          "evidence": {
+            "confirmed": [
+              "A solid red circle is positioned on the left side of the image.",
+              "A solid blue square is positioned on the right side of the image.",
+              "The background is uniformly white with no visible patterns or objects.",
+              "The shapes have sharp, clean edges and no internal detail.",
+              "There are no human figures or organic forms in the image."
+            ],
+            "uncertain": [
+              "It is uncertain whether the shapes are intended as symbolic representations or purely decorative elements.",
+              "The exact aspect ratio of the overall image frame cannot be determined from the provided view."
+            ]
+          },
+          "prompt": "Generate a minimalist visual description of a red circle and blue square on a white background, focusing on geometric form, color contrast, and spatial arrangement without inferring meaning."
+        },
+        "model": "Qwen3.5-4B-Q4_K_M",
+        "provider": "local",
+        "source": "unsloth/Qwen3.5-4B-GGUF"
+      },
+      "reference": {
+        "confirmed": [
+          "A red circle is on the left.",
+          "A blue upright rectangle is on the right.",
+          "There is a plain white background and clear space between the shapes.",
+          "The rendering uses flat solid colors.",
+          "No people or clothing are visible."
+        ],
+        "uncertain": [],
+        "notSupported": [
+          "Photographic objects or physical materials",
+          "Human features, clothing, pose or emotions",
+          "A specific room or story"
+        ]
+      }
+    }
+  ]
+}

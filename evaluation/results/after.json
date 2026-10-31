@@ -1,0 +1,121 @@
+{
+  "label": "after",
+  "createdAt": "2026-10-31T12:50:19.658Z",
+  "results": [
+    {
+      "caseId": "anime-webp",
+      "sha256": "4a6f1386f69045027ba52372d4a92c3f890d62d954a87b77277c4cae65c987c7",
+      "detail": "deep",
+      "httpStatus": 200,
+      "elapsedSeconds": 20,
+      "validation": {
+        "passed": true,
+        "code": "valid"
+      },
+      "response": {
+        "description": {
+          "summary": "A digital illustration of a female character with light blue hair, wearing a grey crop top and black shorts under an open white shirt, posed against a grey checkered background.",
+          "sections": {
+            "appearance": "The character has shoulder-length light blue hair with bangs, pale skin, and a small earring in the visible ear. Her eyes are closed in a relaxed expression with a slight smile.",
+            "clothing": "She wears a grey crop top, black shorts with white trim and a drawstring, and an unbuttoned white long-sleeved shirt draped over her shoulders.",
+            "pose": "The character is seated or crouching with one hand near her chest and the other raised near her head, facing slightly toward the viewer.",
+            "composition": "The subject is centered in a vertical frame, with a grey checkered background visible behind and around the figure.",
+            "style": "The image uses clean digital line art with soft shading and highlights typical of anime-style illustration.",
+            "mood": "The visual atmosphere is calm and composed, with soft lighting and a gentle expression."
+          },
+          "evidence": {
+            "confirmed": [
+              "Character has light blue hair and grey crop top",
+              "Wearing black shorts with white trim and drawstring",
+              "White shirt is open and draped over shoulders",
+              "Background is grey with a checkered pattern",
+              "Character has a small earring in the visible ear"
+            ],
+            "uncertain": [
+              "Exact pose may be seated or crouching",
+              "Gender may be female or androgynous"
+            ]
+          },
+          "prompt": "A digital illustration of a character with light blue hair and grey crop top, wearing black shorts with white trim and an open white shirt, posed against a grey checkered background."
+        },
+        "model": "Qwen3.5-4B-Q4_K_M",
+        "provider": "local",
+        "source": "unsloth/Qwen3.5-4B-GGUF"
+      },
+      "reference": {
+        "confirmed": [
+          "A single illustrated character has silvery light-blue layered hair.",
+          "An open white long-sleeved shirt is worn over a gray cropped top.",
+          "Black shorts have white trim and a white drawstring.",
+          "One hand is near the upper chest and another is raised beside the head.",
+          "A gray checkerboard pattern forms the background."
+        ],
+        "uncertain": [
+          "The seating surface is outside the frame.",
+          "The precise garment materials cannot be established."
+        ],
+        "notSupported": [
+          "A bed or a particular room",
+          "Personality or private emotions",
+          "Age or identity"
+        ]
+      }
+    },
+    {
+      "caseId": "shapes-png",
+      "sha256": "2121153910c639861e97b826f518a018ef67621cfa32fa126842f37a1c255a8e",
+      "detail": "deep",
+      "httpStatus": 200,
+      "elapsedSeconds": 18,
+      "validation": {
+        "passed": true,
+        "code": "valid"
+      },
+      "response": {
+        "description": {
+          "summary": "A minimalist composition on a white background featuring a solid red circle on the left and a solid blue square on the right, separated by a vertical white space.",
+          "sections": {
+            "appearance": "The image contains two geometric shapes: a red circle and a blue square. Both shapes are filled with solid, uniform color and lack internal detail or texture.",
+            "clothing": "No clothing is present in the image.",
+            "pose": "No pose is applicable as there are no figures or subjects.",
+            "composition": "The red circle is positioned in the left half of the frame, and the blue square is in the right half. A vertical white gap separates them. The shapes are vertically centered within the frame.",
+            "style": "The style is minimalist and geometric, characterized by flat colors, simple shapes, and a lack of shading or gradients.",
+            "mood": "The mood is neutral and static, created by the stark contrast between the primary colors and the empty white space."
+          },
+          "evidence": {
+            "confirmed": [
+              "A solid red circle is located on the left side of the image.",
+              "A solid blue square is located on the right side of the image.",
+              "The background is white and uniform.",
+              "The shapes are vertically centered in the frame.",
+              "The shapes are separated by a vertical white space."
+            ],
+            "uncertain": [
+              "The exact ratio of the circle's diameter to the square's side length is not precisely measurable.",
+              "The specific shade of red and blue is not specified."
+            ]
+          },
+          "prompt": "Generate an image with a white background. Place a solid red circle on the left side and a solid blue square on the right side, separated by a vertical white space. Center the shapes vertically. Use flat colors with no shading or gradients."
+        },
+        "model": "Qwen3.5-4B-Q4_K_M",
+        "provider": "local",
+        "source": "unsloth/Qwen3.5-4B-GGUF"
+      },
+      "reference": {
+        "confirmed": [
+          "A red circle is on the left.",
+          "A blue upright rectangle is on the right.",
+          "There is a plain white background and clear space between the shapes.",
+          "The rendering uses flat solid colors.",
+          "No people or clothing are visible."
+        ],
+        "uncertain": [],
+        "notSupported": [
+          "Photographic objects or physical materials",
+          "Human features, clothing, pose or emotions",
+          "A specific room or story"
+        ]
+      }
+    }
+  ]
+}

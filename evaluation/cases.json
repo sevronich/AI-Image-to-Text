@@ -1,0 +1,22 @@
+[
+  {
+    "id": "anime-webp",
+    "file": "evaluation/fixtures/anime.webp",
+    "mime": "image/webp",
+    "reference": {
+      "confirmed": ["A single illustrated character has silvery light-blue layered hair.", "An open white long-sleeved shirt is worn over a gray cropped top.", "Black shorts have white trim and a white drawstring.", "One hand is near the upper chest and another is raised beside the head.", "A gray checkerboard pattern forms the background."],
+      "uncertain": ["The seating surface is outside the frame.", "The precise garment materials cannot be established."],
+      "notSupported": ["A bed or a particular room", "Personality or private emotions", "Age or identity"]
+    }
+  },
+  {
+    "id": "shapes-png",
+    "file": "evaluation/fixtures/shapes.png",
+    "mime": "image/png",
+    "reference": {
+      "confirmed": ["A red circle is on the left.", "A blue upright rectangle is on the right.", "There is a plain white background and clear space between the shapes.", "The rendering uses flat solid colors.", "No people or clothing are visible."],
+      "uncertain": [],
+      "notSupported": ["Photographic objects or physical materials", "Human features, clothing, pose or emotions", "A specific room or story"]
+    }
+  }
+]

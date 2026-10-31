@@ -57,9 +57,15 @@ Run `npm run install:ci`, `npm run qwen`, and `npm run dev` in separate terminal
 
 ## Quality checks
 
-Run `npm test` and `npm run build`. Tests cover English-only requests and result validation, rejection of the obsolete bilingual format, truncated output, image payload limits, CORS/Origin/Host rejection, preflight, provider errors, and translation URL destination/encoding/length limits. Test fixtures are used only in tests; the product has no simulated description path. `node scripts/smoke-qwen.mjs [optional-image.png]` runs a real inference test on the installed model.
+Run `npm run test:unit`, `npm run test:integration`, `npx tsc --noEmit`, and `npm run build`. `npm test` runs both test suites. Coverage includes multimodal payloads, complete six-section output, instruction echoes, refusals, malformed/truncated output, Responses API fragments, language/script checks, image normalization, request cancellation and association, timeouts, size limits, CORS/Origin/Host rejection, and translation URL privacy/length limits. Fixtures and mocked responses exist only in tests; the product has no simulated description path.
 
-Supported image formats: PNG, JPEG, WEBP, and GIF. The app rejects files larger than 10MB in the browser and oversized requests on the server.
+For a separate real-model evaluation, start Qwen, wait for the app's connection check to report ready, then run `node evaluation/create-fixtures.mjs` and `npm run eval:local -- after`. It sends the two local reference fixtures sequentially to the actual model and records their SHA-256, settings, response, status, and validation in ignored `.local-qwen/evaluations/after.json`. Review the output against `evaluation/cases.json`; valid JSON does not establish visual accuracy. See [evaluation/REPORT.md](evaluation/REPORT.md) for the executed before/after comparison and known errors. `node scripts/smoke-qwen.mjs [optional-image.png]` remains available for a quick real inference check.
+
+Supported image formats: PNG, JPEG, WEBP, and GIF. The installed local decoder cannot read WebP directly: browser uploads are decoded to real PNG pixels locally, and the Node bridge has a Sharp fallback for direct WebP API callers. A conversion failure is an explicit error. WebP normalization preserves aspect ratio, limits the long edge to 2048 pixels, and rejects outputs over 10MB. Animated inputs are treated as a still frame, not a video description. The browser rejects original files over 10MB; backend limits independently apply.
+
+The optional `CHITRA_EVAL_TRACE=1` launcher environment flag captures raw responses **only** for explicitly tagged `evaluationCase` requests into ignored `.local-qwen/evaluations/raw-after.jsonl`; image data URIs are redacted. It is off by default. Use it only with non-private test fixtures, stop and restart the model without the flag afterwards, and do not enable verbose runtime prompt/body logging. Normal app requests are never captured by this diagnostic hook.
+
+The result validator enforces the contract and rejects recognizable instruction echoes, placeholders, refusals and qualified guesses in confirmed evidence. It cannot independently verify pixels or prove every English word is English. Qwen can still confidently misread a visual detail; review the result beside the preview, especially eyes, subtle shapes, exact materials and cropped poses.
 
 ## Capability note
 

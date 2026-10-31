@@ -1,0 +1,121 @@
+{
+  "label": "after",
+  "createdAt": "2026-10-31T12:45:53.635Z",
+  "results": [
+    {
+      "caseId": "anime-webp",
+      "sha256": "4a6f1386f69045027ba52372d4a92c3f890d62d954a87b77277c4cae65c987c7",
+      "detail": "deep",
+      "httpStatus": 200,
+      "elapsedSeconds": 21,
+      "validation": {
+        "passed": true,
+        "code": "valid"
+      },
+      "response": {
+        "description": {
+          "summary": "A digital illustration of a female character with light blue hair, wearing a grey sports bra, black shorts, and an open white shirt, posed in a seated position against a neutral background.",
+          "sections": {
+            "appearance": "The character has shoulder-length, wavy light blue hair with bangs framing the face. Her eyes are dark blue or black, almond-shaped, and slightly narrowed in a smile. Her expression is pleasant, with a closed-mouth smile and visible teeth. A small earring is visible in her left ear.",
+            "clothing": "She wears a grey sports bra with a white trim at the bottom. Over it is an unbuttoned white long-sleeved shirt, open at the front. She also wears black athletic shorts with white trim along the sides and a white drawstring at the waist.",
+            "pose": "The character is seated, leaning slightly forward. Her right hand rests near her chest, fingers curled inward. Her left hand is raised near her head, fingers gently touching her hair. Her legs are bent, with knees turned outward and thighs visible.",
+            "composition": "The character is centered in the frame, occupying most of the vertical space. The background is a plain grey with a subtle grid pattern, suggesting a digital canvas. There is no additional foreground or background detail beyond the grid.",
+            "style": "The image is rendered in a clean, anime-style digital art format with smooth shading and soft highlights. The linework is precise, and the color palette is limited to cool tones with soft gradients. Lighting appears even and frontal, with minimal shadows.",
+            "mood": "The overall mood is calm and playful, conveyed through the character’s gentle smile and relaxed posture. The neutral background and soft lighting contribute to a quiet, composed atmosphere."
+          },
+          "evidence": {
+            "confirmed": [
+              "Character has light blue, wavy hair with bangs",
+              "Wearing a grey sports bra with white trim",
+              "Seated pose with hands positioned near chest and head",
+              "Background is a plain grey grid pattern",
+              "Earring visible in left ear"
+            ],
+            "uncertain": [
+              "Exact eye color may vary due to rendering",
+              "Skin tone may be slightly off-white due to digital rendering"
+            ]
+          },
+          "prompt": "Generate a visual illustration of a female anime-style character with light blue wavy hair and a pleasant smile. She is wearing a grey sports bra, black athletic shorts with white trim, and an open white long-sleeved shirt. She is seated, leaning slightly forward, with one hand near her chest and the other near her head. The background is a plain grey grid pattern. Render in clean digital art style with soft shading and even lighting."
+        },
+        "model": "Qwen3.5-4B-Q4_K_M",
+        "provider": "local",
+        "source": "unsloth/Qwen3.5-4B-GGUF"
+      },
+      "reference": {
+        "confirmed": [
+          "A single illustrated character has silvery light-blue layered hair.",
+          "An open white long-sleeved shirt is worn over a gray cropped top.",
+          "Black shorts have white trim and a white drawstring.",
+          "One hand is near the upper chest and another is raised beside the head.",
+          "A gray checkerboard pattern forms the background."
+        ],
+        "uncertain": [
+          "The seating surface is outside the frame.",
+          "The precise garment materials cannot be established."
+        ],
+        "notSupported": [
+          "A bed or a particular room",
+          "Personality or private emotions",
+          "Age or identity"
+        ]
+      }
+    },
+    {
+      "caseId": "shapes-png",
+      "sha256": "2121153910c639861e97b826f518a018ef67621cfa32fa126842f37a1c255a8e",
+      "detail": "deep",
+      "httpStatus": 200,
+      "elapsedSeconds": 18,
+      "validation": {
+        "passed": true,
+        "code": "valid"
+      },
+      "response": {
+        "description": {
+          "summary": "A minimalist composition on a white background featuring a red circle on the left and a blue square on the right, with uniform spacing between them.",
+          "sections": {
+            "appearance": "No human or biological subject is present. The image contains only geometric shapes: a red circle and a blue square.",
+            "clothing": "No clothing is present. The image consists solely of geometric forms on a plain background.",
+            "pose": "No pose is applicable. The objects are static geometric shapes arranged horizontally.",
+            "composition": "The red circle is positioned on the left side, and the blue square is on the right side, separated by a wide margin of white space. Both shapes are centered vertically within the frame.",
+            "style": "The style is minimalist and geometric, characterized by solid colors, clean edges, and a lack of texture or shading.",
+            "mood": "The mood is neutral and balanced, created by the symmetry of the layout and the contrast between the red and blue shapes against the white background."
+          },
+          "evidence": {
+            "confirmed": [
+              "A red circle is located on the left side of the image.",
+              "A blue square is located on the right side of the image.",
+              "The background is solid white with no visible patterns or textures.",
+              "The shapes are centered vertically within the frame.",
+              "There is significant white space between the circle and the square."
+            ],
+            "uncertain": [
+              "The exact aspect ratio of the blue square relative to the circle is not precisely measurable.",
+              "The origin or context of the image is not indicated."
+            ]
+          },
+          "prompt": "Generate a visual illustration of a minimalist composition on a white background featuring a solid red circle on the left and a solid blue square on the right, with equal vertical centering and significant horizontal spacing between them."
+        },
+        "model": "Qwen3.5-4B-Q4_K_M",
+        "provider": "local",
+        "source": "unsloth/Qwen3.5-4B-GGUF"
+      },
+      "reference": {
+        "confirmed": [
+          "A red circle is on the left.",
+          "A blue upright rectangle is on the right.",
+          "There is a plain white background and clear space between the shapes.",
+          "The rendering uses flat solid colors.",
+          "No people or clothing are visible."
+        ],
+        "uncertain": [],
+        "notSupported": [
+          "Photographic objects or physical materials",
+          "Human features, clothing, pose or emotions",
+          "A specific room or story"
+        ]
+      }
+    }
+  ]
+}

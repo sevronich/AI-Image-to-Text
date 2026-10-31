@@ -6,6 +6,9 @@ import {
 } from "lucide-react";
 import { ChangeEvent, DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { descriptionText, googleTranslateUrl, MAX_TRANSLATION_CHARACTERS } from "@/lib/translation.mjs";
+import { prepareVisionImage } from "@/lib/image-normalization.mjs";
+import { createRequestSession } from "@/lib/request-session.mjs";
+import { validateDescription } from "@/lib/description-result.mjs";
 
 type SectionKey = "appearance" | "clothing" | "pose" | "composition" | "style" | "mood";
 type Result = {
@@ -46,6 +49,8 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+type SelectionToken = { signal: AbortSignal; isCurrent: () => boolean };
+
 export function ImageDescriptionStudio() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [image, setImage] = useState<string | null>(null);
@@ -64,7 +69,7 @@ export function ImageDescriptionStudio() {
   const [copied, setCopied] = useState("");
   const [provider, setProvider] = useState<"qwen" | "openai">("qwen");
   const [localState, setLocalState] = useState<"unknown" | "checking" | "ready" | "offline">("unknown");
-  const requestRef = useRef<AbortController | null>(null);
+  const requestSession = useRef(createRequestSession());
   const translationText = result ? translationScope === "prompt" ? prompt : translationScope === "summary" ? result.summary : descriptionText(result, prompt) : "";
   const translationUrl = googleTranslateUrl(translationText);
 
@@ -77,9 +82,15 @@ export function ImageDescriptionStudio() {
     } catch { setLocalState("offline"); }
   };
 
-  const loadFile = useCallback(async (file: File) => {
-    requestRef.current?.abort();
-    setError("");
+  const beginSelection = useCallback(() => {
+    const token = requestSession.current.begin();
+    setError(""); setResult(null); setPrompt(""); setImage(null); setStatus("idle");
+    return token;
+  }, []);
+
+  const loadFile = useCallback(async (file: File, existingToken?: SelectionToken) => {
+    const token = existingToken || beginSelection();
+    if (!token.isCurrent()) return;
     if (!ACCEPTED_TYPES.includes(file.type)) {
       setError("សូមប្រើឯកសារ PNG, JPG, WEBP ឬ GIF ប៉ុណ្ណោះ។");
       setStatus("error"); return;
@@ -88,10 +99,17 @@ export function ImageDescriptionStudio() {
       setError("រូបភាពធំពេក។ ទំហំអតិបរមាគឺ 10MB។");
       setStatus("error"); return;
     }
-    const dataUrl = await fileToDataUrl(file);
-    setImage(dataUrl); setFileName(file.name); setFileSize(file.size);
-    setResult(null); setPrompt(""); setStatus("idle");
-  }, []);
+    try {
+      const dataUrl = await prepareVisionImage(await fileToDataUrl(file));
+      if (!token.isCurrent()) return;
+      setImage(dataUrl); setFileName(file.name); setFileSize(file.size); setStatus("idle");
+    } catch (cause) {
+      if (!token.isCurrent()) return;
+      setError(cause instanceof Error ? cause.message : "មិនអាចអានរូបភាពបានទេ។"); setStatus("error");
+    }
+  }, [beginSelection]);
+
+  useEffect(() => () => requestSession.current.invalidate(), []);
 
   useEffect(() => {
     const onPaste = (event: ClipboardEvent) => {
@@ -113,37 +131,49 @@ export function ImageDescriptionStudio() {
     if (file) void loadFile(file);
   };
   const loadSample = async () => {
-    const response = await fetch("/reference-anime.png");
-    const blob = await response.blob();
-    await loadFile(new File([blob], "anime-reference.png", { type: blob.type || "image/png" }));
+    const token = beginSelection();
+    try {
+      const response = await fetch("/reference-anime.png", { signal: token.signal });
+      if (!response.ok) throw new Error("មិនអាចបើករូបសាកល្បងបានទេ។");
+      const blob = await response.blob();
+      if (token.isCurrent()) await loadFile(new File([blob], "anime-reference.png", { type: blob.type || "image/png" }), token);
+    } catch (cause) {
+      if (token.isCurrent()) { setError(cause instanceof Error ? cause.message : "មិនអាចបើករូបសាកល្បងបានទេ។"); setStatus("error"); }
+    }
   };
   const analyze = async () => {
     if (!image) return;
-    const controller = new AbortController();
-    requestRef.current?.abort();
-    requestRef.current = controller;
+    const token = requestSession.current.begin();
     setStatus("loading"); setError(""); setResult(null);
     try {
+      const preparedImage = await prepareVisionImage(image);
+      if (!token.isCurrent()) return;
       const response = await fetch(provider === "qwen" ? "http://127.0.0.1:8765/describe" : "/api/describe", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({ image, preset, detail, customInstructions }),
+        signal: token.signal,
+        body: JSON.stringify({ image: preparedImage, preset, detail, customInstructions }),
       });
       const payload = await response.json() as { description?: Result; model?: string; error?: string };
+      if (!token.isCurrent()) return;
       if (!response.ok) throw new Error(payload.error || "ការវិភាគបរាជ័យ។");
       if (!payload.description) throw new Error("Model មិនបានផ្តល់ការពិពណ៌នាទេ។");
+      validateDescription(payload.description, { submittedTexts: [customInstructions] });
       setResult(payload.description); setModel(payload.model || "Vision model");
       setPrompt(payload.description.prompt); setStatus("success"); setTranslationScope("prompt");
       if (provider === "qwen") setLocalState("ready");
-      window.setTimeout(() => document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+      window.setTimeout(() => { if (token.isCurrent()) document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" }); }, 80);
     } catch (cause) {
-      if (controller.signal.aborted) return;
+      if (!token.isCurrent()) return;
       setStatus("error");
       const unavailable = cause instanceof TypeError && provider === "qwen";
       if (unavailable) setLocalState("offline");
-      setError(unavailable
-        ? "មិនអាចភ្ជាប់ Qwen លើកុំព្យូទ័រនេះបានទេ។ សូមបើក Start-Chitra-Qwen.cmd ហើយអនុញ្ញាត Local network access ក្នុង browser ប្រសិនបើមានសំណើ។"
-        : cause instanceof Error ? cause.message : "មានបញ្ហាដែលមិនបានរំពឹងទុក។");
+      let message = cause instanceof Error ? cause.message : "មានបញ្ហាដែលមិនបានរំពឹងទុក។";
+      if (unavailable) {
+        message = "មិនអាចភ្ជាប់ Qwen លើកុំព្យូទ័រនេះបានទេ។ សូមបើក Start-Chitra-Qwen.cmd ហើយអនុញ្ញាត Local network access ក្នុង browser ប្រសិនបើមានសំណើ។";
+      } else if (message.includes("HTTP 400")) {
+        message = "ម៉ូដែលមិនអាចអានទម្រង់រូបភាពនេះបានទេ (HTTP 400)។ សូមសាកល្បងជ្រើសរើសរូបភាព PNG ឬ JPG ធម្មតា។";
+      }
+      setError(message);
     }
   };
   const copyText = async (text: string, key: string) => {
@@ -172,7 +202,7 @@ export function ImageDescriptionStudio() {
         <div className="panel upload-panel">
           <div className="panel-heading">
             <div><span className="step">01</span><h2>ដាក់រូបភាព</h2><small>ADD AN IMAGE</small></div>
-            {image && <button className="icon-btn" type="button" onClick={() => { requestRef.current?.abort(); setImage(null); setResult(null); setStatus("idle"); }} aria-label="លុបរូបភាព"><X size={18} /></button>}
+            {image && <button className="icon-btn" type="button" onClick={beginSelection} aria-label="លុបរូបភាព"><X size={18} /></button>}
           </div>
           <input ref={inputRef} className="sr-only" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onFileChange} />
           {!image ? (
@@ -213,7 +243,7 @@ export function ImageDescriptionStudio() {
               <p>EN ONLY · Qwen សរសេរតែ English ដើម្បីកាត់បន្ថយពេលបង្កើតអត្ថបទ។ ប៊ូតុងបកប្រែខ្មែរមិនប្រើ GPU របស់អ្នកទេ។</p>
             </div>}
           </div>
-          <fieldset className="control-group">
+          <fieldset className="control-group" disabled={status === "loading"}>
             <legend>គោលបំណង <span>Prompt preset</span></legend>
             <div className="preset-grid">{presets.map((item) => (
               <button key={item.value} type="button" className={preset === item.value ? "selected" : ""} onClick={() => setPreset(item.value)} aria-pressed={preset === item.value}>
@@ -222,7 +252,7 @@ export function ImageDescriptionStudio() {
             ))}</div>
             <p className="setting-hint">{selectedPreset?.hint}</p>
           </fieldset>
-          <fieldset className="control-group">
+          <fieldset className="control-group" disabled={status === "loading"}>
             <legend>កម្រិតលម្អិត <span>Level of detail</span></legend>
             <div className="segmented">{detailLevels.map((item) => (
               <button key={item.value} type="button" className={detail === item.value ? "selected" : ""} onClick={() => setDetail(item.value)} aria-pressed={detail === item.value}>
@@ -232,7 +262,7 @@ export function ImageDescriptionStudio() {
           </fieldset>
           <label className="instructions-label">
             <span>ការណែនាំបន្ថែម <small>OPTIONAL</small></span>
-            <textarea value={customInstructions} onChange={(e) => setCustomInstructions(e.target.value.slice(0, 800))} placeholder="ឧ. ផ្តោតលើពន្លឺ និងសម្លៀកបំពាក់..." rows={3} />
+            <textarea value={customInstructions} disabled={status === "loading"} onChange={(e) => setCustomInstructions(e.target.value.slice(0, 800))} placeholder="ឧ. ផ្តោតលើពន្លឺ និងសម្លៀកបំពាក់..." rows={3} />
             <b>{customInstructions.length}/800</b>
           </label>
           <button className="analyze-btn" type="button" disabled={!image || status === "loading"} onClick={analyze}>
@@ -247,7 +277,7 @@ export function ImageDescriptionStudio() {
         <div><strong>កំពុងពិនិត្យភស្តុតាងក្នុងរូបភាព</strong><span>{provider === "qwen" ? "Qwen3.5‑4B is generating English only on your PC." : "Analyzing appearance, pose, composition, style and mood in English…"}</span></div>
       </section>}
       {status === "error" && error && <section className="error-card" role="alert">
-        <AlertCircle size={20} /><div><strong>មិនអាចបញ្ចប់ការវិភាគបានទេ</strong><p>{error}</p></div><button type="button" onClick={analyze}>សាកម្តងទៀត</button>
+        <AlertCircle size={20} /><div><strong>មិនអាចបញ្ចប់ការវិភាគបានទេ</strong><p>{error}</p></div><button type="button" onClick={() => image ? void analyze() : inputRef.current?.click()}>{image ? "សាកម្តងទៀត" : "ជ្រើសរូបថ្មី"}</button>
       </section>}
 
       {result && status === "success" && <section className="results" id="results">
@@ -285,7 +315,7 @@ export function ImageDescriptionStudio() {
           <article className="evidence-card uncertain"><h3><AlertCircle size={18} /> ចំណុចមិនច្បាស់ <small>CALIBRATED UNCERTAINTY</small></h3>{result.evidence.uncertain.length ? <ul lang="en">{result.evidence.uncertain.map((item, i) => <li key={i}>{item}</li>)}</ul> : <p lang="en">No material visual ambiguity noted.</p>}</article>
         </div>
         <article className="prompt-card">
-          <div className="prompt-heading"><div><Clipboard size={18} /><h3>Prompt អាចកែសម្រួលបាន<small>EDITABLE RECONSTRUCTION PROMPT</small></h3></div><button type="button" onClick={() => copyText(prompt, "prompt")}>{copied === "prompt" ? <><Check size={16} /> បានចម្លង</> : <><Copy size={16} /> ចម្លង Prompt</>}</button></div>
+          <div className="prompt-heading"><div><Clipboard size={18} /><h3>Prompt សម្រាប់បង្កើតរូបឡើងវិញ<small>EDITABLE RECONSTRUCTION PROMPT</small></h3></div><button type="button" onClick={() => copyText(prompt, "prompt")}>{copied === "prompt" ? <><Check size={16} /> បានចម្លង</> : <><Copy size={16} /> ចម្លង Prompt</>}</button></div>
           <textarea lang="en" value={prompt} onChange={(e) => setPrompt(e.target.value)} aria-label="Editable prompt" rows={8} />
           <p>កែសម្រួលបានដោយសេរី មុនពេលយកទៅប្រើក្នុង image generator។</p>
         </article>
