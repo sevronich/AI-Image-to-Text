@@ -1,5 +1,7 @@
 # ចិត្រា AI — Image Description Studio
 
+The active local project is **`D:\Project\Chitra-AI`**. Double-click `START.cmd` to run the app, `STOP.cmd` to stop it and release model/GPU memory, or open `Chitra-AI.code-workspace` in VS Code. See [HOW-TO-RUN-KH.md](HOW-TO-RUN-KH.md) for Khmer instructions. The previous C-drive checkout is retained as a backup.
+
 A full-stack image description app with a Khmer-first interface and **English-only AI output**. The default provider is **Qwen3.5-4B running on your own Windows PC**, downloaded from Hugging Face. OpenAI remains an explicitly selected cloud option. Both providers use real vision inference and the same English result format.
 
 ## Optional Khmer translation
@@ -24,7 +26,7 @@ The setup is tuned for 16GB RAM and a GTX 1660 Ti with 6GB VRAM: 4-bit language 
 4. Open the private deployed website or local dev page. Select Qwen3.5-4B, then check the connection.
 5. If Chromium asks for local-network access, allow it for this private site. The browser sends the image directly to `127.0.0.1:8765`.
 
-The downloaded `Start-Chitra-Qwen.cmd` is a shortcut for the installation path on the original user's PC. For a relocated checkout, use `scripts/Start-Qwen.ps1` instead.
+`START.cmd` resolves the project relative to its own location. The downloadable `Start-Chitra-Qwen.cmd` also works from the project root and otherwise looks for `D:\Project\Chitra-AI`. For any other checkout location, use its root `START.cmd` or `scripts/Start-Qwen.ps1`.
 
 The local app is the reliable option when a browser blocks connections from the HTTPS hosted site to localhost. It uses the same built UI and real model, without a cloud login. The launcher does not change Windows execution policy or security settings. On a cold start, wait a few seconds and refresh if necessary.
 

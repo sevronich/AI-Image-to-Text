@@ -1,0 +1,17 @@
+{
+  "folders": [{ "path": "." }],
+  "settings": {
+    "files.watcherExclude": {
+      "**/.local-qwen/**": true,
+      "**/dist/**": true,
+      "**/.wrangler/**": true,
+      "**/.sites-runtime/**": true
+    },
+    "search.exclude": {
+      "**/.local-qwen": true,
+      "**/dist": true,
+      "**/.wrangler": true,
+      "**/.sites-runtime": true
+    }
+  }
+}
