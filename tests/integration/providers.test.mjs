@@ -75,3 +75,20 @@ test("bridge timeout returns 504 and releases the slot for the next analysis", a
   const first = await post(); assert.equal(first.status, 504); assert.equal(first.payload.code, "model_timeout");
   assert.equal((await post()).status, 200);
 });
+test("cloud adapter rejects a completed payload whose text is only the submitted instruction", async () => {
+  const instruction = "Analyze this image and produce the requested structured description in English only.";
+  await assert.rejects(describeWithOpenAI({ image, customInstructions: "" }, {
+    apiKey: "test-only",
+    fetchImpl: async () => new Response(JSON.stringify({ status: "completed", model: "m", output_text: JSON.stringify({ ...shapesDescription, summary: instruction }) })),
+  }), error => error.code === "instruction_echo");
+});
+test("cloud adapter refuses to succeed when the provider omits model identity", async () => {
+  // The configured fallback model name is used, so success requires a valid description envelope.
+  await assert.rejects(describeWithOpenAI({ image }, {
+    fetchImpl: async () => new Response(JSON.stringify({ status: "completed", output_text: JSON.stringify(shapesDescription) })),
+  }), error => error.code === "missing_api_key");
+  await assert.rejects(describeWithOpenAI({ image }, {
+    apiKey: "test-only",
+    fetchImpl: async () => new Response(JSON.stringify({ status: "completed", output: [] })),
+  }), error => error.code === "missing_output");
+});

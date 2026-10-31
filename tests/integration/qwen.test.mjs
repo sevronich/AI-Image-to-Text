@@ -691,3 +691,89 @@ test("broken WebP fails explicitly before any model request", async () => {
   assert.equal(called, false);
 });
 
+
+// ----------------------------------------------------
+// TEST 13 — Instruction Echo From The Model Is Rejected
+// ----------------------------------------------------
+
+test(
+  "a model response that repeats the submitted instruction is rejected as instruction_echo",
+  () => {
+    const echoed = structuredClone(fixture);
+    echoed.summary =
+      "Analyze this image and produce the requested structured description in English only.";
+    const echoPayload = {
+      choices: [
+        { finish_reason: "stop", message: { content: JSON.stringify(echoed) } },
+      ],
+    };
+    assert.throws(
+      () =>
+        parseQwenResponse(echoPayload, {
+          submittedTexts: ["SYSTEM", echoed.summary],
+        }),
+      (error) => error.code === "instruction_echo"
+    );
+    // Without the association hint the verb-initial echo still fails.
+    assert.throws(
+      () => parseQwenResponse(echoPayload),
+      (error) => error.code === "instruction_echo"
+    );
+  }
+);
+
+// ----------------------------------------------------
+// TEST 14 — Empty Completion List Is A Provider Failure
+// ----------------------------------------------------
+
+test(
+  "describeWithQwen rejects a 200 response that carries no completion choice",
+  async () => {
+    await assert.rejects(
+      describeWithQwen(
+        { image },
+        {
+          apiKey: "test",
+          fetchImpl: async () =>
+            new Response(JSON.stringify({ choices: [] }), { status: 200 }),
+        }
+      ),
+      (error) => error.code === "provider_error" && error.status === 502
+    );
+  }
+);
+
+// ----------------------------------------------------
+// TEST 15 — Bridge Never Labels An Invalid Generation Successful
+// ----------------------------------------------------
+
+test(
+  "local bridge converts an invalid generate result into an explicit error instead of HTTP 200",
+  async (t) => {
+    const bridge = createBridge({
+      generate: async () => ({ model: "ghost-model" }),
+    });
+
+    bridge.listen(0, "127.0.0.1");
+    await once(bridge, "listening");
+    t.after(() => bridge.close());
+
+    const response = await localRequest(
+      `http://127.0.0.1:${bridge.address().port}/describe`,
+      {
+        method: "POST",
+        headers: {
+          Host: "127.0.0.1:8765",
+          Origin: SITE_ORIGIN,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ image }),
+      }
+    );
+
+    assert.equal(response.ok, false);
+    const payload = await response.json();
+    assert.equal(typeof payload.error, "string");
+    assert.equal(payload.description, undefined);
+  }
+);
