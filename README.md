@@ -4,17 +4,19 @@ A full-stack, Khmer-first image description app. The default provider is **Qwen3
 
 ## Qwen3.5-4B on this PC
 
-Model: [Qwen3.5-4B, Unsloth Q4_K_M conversion](https://huggingface.co/unsloth/Qwen3.5-4B-GGUF), Apache-2.0. The original model is [Qwen/Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B). Runtime: official llama.cpp Windows CUDA 12.4, release b11960.
+Model: [Qwen3.5-4B, Unsloth Q4_K_M conversion](https://huggingface.co/unsloth/Qwen3.5-4B-GGUF), Apache-2.0. The original model is [Qwen/Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B). Runtime: signed llama.cpp components from the official Ollama v0.40.13 Windows release, using Vulkan on the NVIDIA GPU.
 
-The setup is tuned for 16GB RAM and a GTX 1660 Ti with 6GB VRAM: 4-bit language model, F16 vision projector, one simultaneous request, 8192-token context, and at most 768 image tokens. Actual memory use and speed depend on image size and other applications.
+The setup is tuned for 16GB RAM and a GTX 1660 Ti with 6GB VRAM: 4-bit language model, F16 vision projector, one simultaneous request, 8192-token context, and 1024–1536 image tokens for visual detail. Actual memory use and speed depend on image size and other applications.
 
 1. Install Node.js 22.13+ if it is not installed.
-2. Run `npm run setup:qwen`. It downloads approximately 4.1GB into ignored `.local-qwen/`, resumes partial downloads, and verifies both model SHA-256 hashes.
-3. Run `npm run qwen`, or launch `scripts/Start-Qwen.ps1` to run it in the background.
+2. Run `npm run setup:qwen`. It downloads approximately 3.4GB of model data plus a small signed runtime into ignored `.local-qwen/`, resumes partial downloads, verifies both model SHA-256 hashes, and verifies Windows Authenticode signatures on runtime components.
+3. Run `npm run build` once, then launch `scripts/Start-Qwen.ps1`. It starts the local app at `http://127.0.0.1:5173` and the model in the background. `npm run qwen` starts only the model/bridge.
 4. Open the private deployed website or local dev page. Select Qwen3.5-4B, then check the connection.
 5. If Chromium asks for local-network access, allow it for this private site. The browser sends the image directly to `127.0.0.1:8765`.
 
 The downloaded `Start-Chitra-Qwen.cmd` is a shortcut for the installation path on the original user's PC. For a relocated checkout, use `scripts/Start-Qwen.ps1` instead.
+
+The local app is the reliable option when a browser blocks connections from the HTTPS hosted site to localhost. It uses the same built UI and real model, without a cloud login. The launcher does not change Windows execution policy or security settings. On a cold start, wait a few seconds and refresh if necessary.
 
 No Hugging Face token or OpenAI credits are required for this public model. After the download, inference itself can run offline; the hosted website still needs internet. The PC must stay on while analyzing. A phone cannot reach this PC's loopback address.
 
@@ -26,9 +28,9 @@ Do not expose either local port to the public internet. No tunnel, firewall open
 
 ### Installation status on the original PC
 
-During verification, Windows Code Integrity rejected the official llama.cpp runtime's unsigned `ggml-base.dll` with exit code `0xC0E90002` (Code Integrity events 3077/3033). Security policy was not changed. This blocks local inference before a model can be loaded. An administrator must review the runtime under the existing policy, or a trusted, signed runtime must be provided. Do not disable Windows protections to proceed.
+The initial unsigned llama.cpp build was rejected by Windows Code Integrity. This was resolved by switching to the digitally signed runtime distributed by Ollama. All 38 executable/DLL signatures were verified as valid, the runtime started successfully, and it detected the GTX 1660 Ti as Vulkan0. Windows security policy was not modified. `scripts/start-qwen.mjs` explicitly selects Vulkan0 on this PC.
 
-The model download was left incomplete, with partial files preserved in `.local-qwen/`. After resolving the runtime policy, rerun `npm run setup:qwen` to finish and verify the model, then launch it. The code and production build are verified; real Qwen inference and Khmer output quality are not yet verified on this PC.
+Both Hugging Face model files passed SHA-256 verification. A real reference-image smoke test completed in 41 seconds on this GPU, and the browser flow produced structured results. English identified the hair, garment layers, pose, and background. Khmer output contained substantial mistranslation and repetition even with English-first generation and terminology guidance; it must be reviewed and is not comparable to ChatGPT quality. The UI displays this limitation. The hosted page could not reach loopback in the in-app browser; use the local app in that situation.
 
 ## Architecture
 

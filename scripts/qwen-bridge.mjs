@@ -38,6 +38,7 @@ export function createBridge({ generate = describeWithQwen, ready = async () => 
     }
     if (busy) { json(429, { error: "Model កំពុងវិភាគរូបមួយទៀត។ សូមរង់ចាំ។" }); return; }
     if (Number(req.headers["content-length"] || 0) > MAX_REQUEST_BYTES) { json(413, { error: "រូបភាពធំពេក។" }); return; }
+    busy = true;
     const chunks = [];
     let bytes = 0;
     try {
@@ -49,17 +50,21 @@ export function createBridge({ generate = describeWithQwen, ready = async () => 
       let body;
       try { body = JSON.parse(Buffer.concat(chunks).toString("utf8")); }
       catch { json(400, { error: "Invalid JSON" }); return; }
-      busy = true;
+      if (!await ready().catch(() => false)) {
+        json(503, { error: "Qwen កំពុងផ្ទុក។ សូមរង់ចាំបន្តិច រួចពិនិត្យការភ្ជាប់ និងសាកម្តងទៀត។" }); return;
+      }
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 300000);
       res.once("close", () => { if (!res.writableEnded) controller.abort(); });
       try {
         const result = await generate(body, { apiKey, signal: controller.signal });
         json(200, result);
-      } finally { clearTimeout(timeout); busy = false; }
+      } finally { clearTimeout(timeout); }
     } catch (error) {
       busy = false;
       json(502, { error: error.name === "AbortError" ? "ការវិភាគចំណាយពេលយូរពេក។ សូមជ្រើសកម្រិតខ្លី។" : error.message || "Local model មិនអាចឆ្លើយបានទេ។" });
+    } finally {
+      busy = false;
     }
   });
 }

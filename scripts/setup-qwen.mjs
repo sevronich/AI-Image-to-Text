@@ -1,17 +1,15 @@
-import { mkdir, stat, readdir } from "node:fs/promises";
+import { mkdir, stat } from "node:fs/promises";
 import { createReadStream, createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { installSignedRuntime } from "./install-qwen-runtime.mjs";
 
 const root = fileURLToPath(new URL("../.local-qwen/", import.meta.url));
 await mkdir(root, { recursive: true });
-const release = "b11960";
 const files = [
-  { name: "llama-cuda.zip", url: `https://github.com/ggml-org/llama.cpp/releases/download/${release}/llama-${release}-bin-win-cuda-12.4-x64.zip`, size: 279763224 },
-  { name: "cudart.zip", url: `https://github.com/ggml-org/llama.cpp/releases/download/${release}/cudart-llama-bin-win-cuda-12.4-x64.zip`, size: 391443627 },
   { name: "Qwen3.5-4B-Q4_K_M.gguf", url: "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf", size: 2740937888, sha256: "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4" },
   { name: "mmproj-F16.gguf", url: "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/mmproj-F16.gguf", size: 672423616, sha256: "cd88edcf8d031894960bb0c9c5b9b7e1fea6ebee02b9f7ce925a00d12891f864" },
 ];
@@ -34,11 +32,21 @@ async function downloadModel(file, target) {
   }
   partsByFile.set(file.name, { prefix, parts });
   let next = 0;
-  await Promise.all(Array.from({ length: Math.min(8, parts.length) }, async () => {
+  await Promise.all(Array.from({ length: Math.min(24, parts.length) }, async () => {
     while (next < parts.length) {
       const part = parts[next++];
-      if ((await stat(part.target).catch(() => null))?.size === part.end - part.start + 1) continue;
-      await run("curl.exe", ["--location", "--fail", "--silent", "--show-error", "--retry", "3", "--range", `${part.start}-${part.end}`, "--output", part.target, file.url]);
+      let have = (await stat(part.target).catch(() => null))?.size || 0;
+      if (have === part.end - part.start + 1) continue;
+      if (have > part.end - part.start + 1) throw new Error("Partial model size mismatch.");
+      while (have < part.end - part.start + 1) {
+        const start = part.start + have;
+        const end = Math.min(part.end, start + 4 * 1024 * 1024 - 1);
+        const remainder = part.target + ".remainder";
+        await run("curl.exe", ["--location", "--fail", "--silent", "--show-error", "--retry", "3", "--max-time", "180", "--range", `${start}-${end}`, "--output", remainder, file.url + `?download=true&chitra-range=${start}-${end}`]);
+        if ((await stat(remainder)).size !== end - start + 1) throw new Error("Range size mismatch.");
+        await pipeline(createReadStream(remainder), createWriteStream(part.target, { flags: "a" }));
+        have += end - start + 1;
+      }
       if ((await stat(part.target)).size !== part.end - part.start + 1) throw new Error("Range size mismatch.");
     }
   }));
@@ -68,13 +76,7 @@ try {
     }
     console.log(`Verified ${file.name}`);
   }));
-  const bin = path.join(root, "bin");
-  await mkdir(bin, { recursive: true });
-  for (const archive of ["llama-cuda.zip", "cudart.zip"]) {
-    await run("tar.exe", ["-xf", path.join(root, archive), "-C", bin]);
-  }
-  const executables = (await readdir(bin)).filter(name => name === "llama-server.exe");
-  if (!executables.length) throw new Error("llama-server.exe was not extracted.");
+  await installSignedRuntime();
   console.log("Qwen3.5-4B is ready. Run: npm run qwen");
 } finally {
   clearInterval(progress);

@@ -209,6 +209,8 @@ export function ImageDescriptionStudio() {
               <p>ទាញយកពី <a href="https://huggingface.co/unsloth/Qwen3.5-4B-GGUF" target="_blank" rel="noreferrer">Hugging Face</a> · 4-bit · មិនចំណាយ OpenAI credits</p>
               <div><span role="status">{localState === "ready" ? "● Qwen រួចរាល់" : localState === "checking" ? "កំពុងពិនិត្យ…" : localState === "offline" ? "○ មិនទាន់ភ្ជាប់ / កំពុងបើក model" : "○ សូមបើក local model ជាមុន"}</span><button type="button" onClick={checkLocal} disabled={localState === "checking"}>ពិនិត្យការភ្ជាប់</button></div>
               <p>បើក <a href="/Start-Chitra-Qwen.cmd" download>Start-Chitra-Qwen.cmd</a> លើ PC ដែលបានដំឡើង។ បន្ទាប់មកចុចពិនិត្យការភ្ជាប់។</p>
+              <p>បើ browser រារាំងការភ្ជាប់ សូម <a href="http://127.0.0.1:5173/">បើកកម្មវិធីលើ PC</a>។</p>
+              <p>Qwen 4B ពិពណ៌នាអង់គ្លេសបានល្អជាងខ្មែរ។ ភាសាខ្មែរអាចមានពាក្យខុស ឬស្ទួនច្រើន; សូមពិនិត្យជាមួយ English។</p>
             </div>}
           </div>
           <fieldset className="control-group">
