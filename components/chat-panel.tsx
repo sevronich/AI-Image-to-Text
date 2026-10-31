@@ -74,7 +74,7 @@ export function ChatPanel() {
     <>
       <button
         type="button"
-        className="chat-launcher"
+        className="chitra-chat-launcher"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-label={open ? "បិទប្រឡីឆាត" : "បើកឆាតជាមួយ Qwen"}
@@ -83,8 +83,8 @@ export function ChatPanel() {
       </button>
 
       {open && (
-        <section className="chat-panel" aria-label="Chat with local Qwen">
-          <div className="chat-head">
+        <section className="chitra-chat-panel" aria-label="Chat with local Qwen">
+          <div className="chitra-chat-head">
             <div><Sparkles size={16} /><strong>Qwen3.5‑4B Chat</strong><small>LOCAL · PLAIN TEXT</small></div>
             <div>
               <button type="button" onClick={clearChat} aria-label="សម្អាតការសន្ទនា"><RefreshCw size={15} /></button>
@@ -92,19 +92,19 @@ export function ChatPanel() {
             </div>
           </div>
 
-          <div className="chat-log" ref={listRef} role="log" aria-live="polite">
+          <div className="chitra-chat-log" ref={listRef} role="log" aria-live="polite">
             {messages.length === 0 && !sending && (
-              <p className="chat-empty">សួរ Qwen អ្វីក៏បាន — ខ្មែរ ឬ English។ ចម្លើយត្រូវបានបង្កើតលើ PC របស់អ្នក ហើយមិនប្រើ JSON validator របស់ការវិភាគរូបភាពទេ។</p>
+              <p className="chitra-chat-empty">សួរ Qwen អ្វីក៏បាន — ខ្មែរ ឬ English។ ចម្លើយត្រូវបានបង្កើតលើ PC របស់អ្នក ហើយមិនប្រើ JSON validator របស់ការវិភាគរូបភាពទេ។</p>
             )}
             {messages.map((message, index) => (
-              <div key={index} className={`chat-bubble ${message.role}`}>{message.content}</div>
+              <div key={index} className={`chitra-chat-bubble ${message.role}`}>{message.content}</div>
             ))}
-            {sending && <div className="chat-bubble assistant pending"><LoaderCircle className="spin" size={15} /> កំពុងគិត…</div>}
+            {sending && <div className="chitra-chat-bubble assistant pending"><LoaderCircle className="spin" size={15} /> កំពុងគិត…</div>}
           </div>
 
-          {error && <p className="chat-error" role="alert">{error}</p>}
+          {error && <p className="chitra-chat-error" role="alert">{error}</p>}
 
-          <div className="chat-input-row">
+          <div className="chitra-chat-input-row">
             <textarea
               rows={2}
               value={draft}
@@ -119,11 +119,11 @@ export function ChatPanel() {
                 }
               }}
             />
-            <button type="button" className="chat-send" onClick={() => void send()} disabled={sending || !draft.trim()} aria-label="ផ្ញើសារ">
+            <button type="button" className="chitra-chat-send" onClick={() => void send()} disabled={sending || !draft.trim()} aria-label="ផ្ញើសារ">
               {sending ? <LoaderCircle className="spin" size={18} /> : <Send size={18} />}
             </button>
           </div>
-          <small className="chat-note">អត្ថបទឆាតត្រូវបានរក្សាទុកតែក្នុង browser tab នេះ។ {draft.length}/{MAX_INPUT_CHARS}</small>
+          <small className="chitra-chat-note">អត្ថបទឆាតត្រូវបានរក្សាទុកតែក្នុង browser tab នេះ។ {draft.length}/{MAX_INPUT_CHARS}</small>
         </section>
       )}
     </>
