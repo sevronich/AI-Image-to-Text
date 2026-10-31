@@ -1,13 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { validateDescription, parseDescriptionText, parseResponsesOutput } from "../lib/description-result.mjs";
-import { shapesDescription } from "./fixtures/descriptions.mjs";
+import { validateDescription, parseDescriptionText, parseResponsesOutput, validateProviderResult } from "../lib/description-result.mjs";
+import { shapesDescription, animeDescription } from "./fixtures/descriptions.mjs";
 
 const copy = () => structuredClone(shapesDescription);
 const code = expected => error => error.code === expected;
 test("a completed English analysis preserves all six sections and the actual reconstruction prompt", () => {
   assert.deepEqual(parseDescriptionText(JSON.stringify(shapesDescription)), shapesDescription);
   assert.match(validateDescription(shapesDescription).prompt, /^Create/);
+});
+test("the same contract passes for a different composition without subject-specific rules", () => {
+  assert.deepEqual(validateDescription(animeDescription), animeDescription);
+  // Neither fixture may be replaced by an instruction-shaped field.
+  assert.doesNotThrow(() => validateDescription(structuredClone(animeDescription)));
 });
 test("instruction echoes are errors, including an exact submitted instruction", () => {
   const result = copy(); result.summary = "Please describe the visible image in detail.";
@@ -64,4 +69,14 @@ test("Responses incomplete, refusal and failed states override even otherwise va
   assert.throws(() => parseResponsesOutput({ status: "incomplete", output_text: text }), code("truncated_output"));
   assert.throws(() => parseResponsesOutput({ output_text: text, output: [{ content: [{ type: "refusal", refusal: "Declined" }] }] }), code("model_refusal"));
   assert.throws(() => parseResponsesOutput({ status: "failed", output_text: text }), code("provider_error"));
+});
+test("provider result envelope requires a real description and model identity before success", () => {
+  assert.deepEqual(validateProviderResult({ description: shapesDescription, model: "Qwen3.5-4B-Q4_K_M", provider: "local" }).description, shapesDescription);
+  assert.throws(() => validateProviderResult({ model: "x" }), code("invalid_description"));
+  assert.throws(() => validateProviderResult({ description: null, model: "x" }), code("invalid_description"));
+  assert.throws(() => validateProviderResult({ description: shapesDescription }), code("missing_model_identity"));
+  // An instruction echo inside the envelope is still rejected, never displayed as success.
+  const echoed = structuredClone(shapesDescription);
+  echoed.summary = "Analyze this image and produce the requested structured description in English only.";
+  assert.throws(() => validateProviderResult({ description: echoed, model: "x" }, { submittedTexts: [echoed.summary] }), code("instruction_echo"));
 });

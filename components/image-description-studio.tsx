@@ -157,9 +157,11 @@ export function ImageDescriptionStudio() {
       if (!token.isCurrent()) return;
       if (!response.ok) throw new Error(payload.error || "ការវិភាគបរាជ័យ។");
       if (!payload.description) throw new Error("Model មិនបានផ្តល់ការពិពណ៌នាទេ។");
+      // The displayed object must be a complete generated analysis, never the submitted instruction.
       validateDescription(payload.description, { submittedTexts: [customInstructions] });
+      const generatedPrompt = payload.description.prompt;
       setResult(payload.description); setModel(payload.model || "Vision model");
-      setPrompt(payload.description.prompt); setStatus("success"); setTranslationScope("prompt");
+      setPrompt(generatedPrompt); setStatus("success"); setTranslationScope("prompt");
       if (provider === "qwen") setLocalState("ready");
       window.setTimeout(() => { if (token.isCurrent()) document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" }); }, 80);
     } catch (cause) {

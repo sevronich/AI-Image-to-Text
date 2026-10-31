@@ -8,6 +8,8 @@ import {
   QWEN_MODEL,
 } from "../lib/qwen.mjs";
 
+import { validateProviderResult } from "../lib/description-result.mjs";
+
 // Allowed website origins for the local bridge.
 export const ALLOWED_ORIGINS = new Set([
   SITE_ORIGIN,
@@ -200,6 +202,13 @@ export function createBridge({
           apiKey,
           signal: controller.signal,
         });
+
+        // Only a fully validated structured description may be labeled success.
+        // Injected generators (tests/evaluation) may omit the submitted prompt texts,
+        // so echo association is checked only when the caller actually supplied them.
+        validateProviderResult(result, Array.isArray(body?.submittedTexts)
+          ? { submittedTexts: body.submittedTexts }
+          : undefined);
 
         // Return model response.
         json(200, result);
