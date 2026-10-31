@@ -6,7 +6,7 @@ import { buildQwenRequest, parseQwenResponse, describeWithQwen, validateLocalInp
 import { createBridge } from "../scripts/qwen-bridge.mjs";
 
 const image = "data:image/png;base64,iVBORw0KGgo=";
-const pair = { km: "ការពិពណ៌នាសម្រាប់តេស្ត", en: "Test description" };
+const pair = "Test description";
 const fixture = {
   summary: pair,
   sections: Object.fromEntries(["appearance", "clothing", "pose", "composition", "style", "mood"].map(key => [key, pair])),
@@ -24,18 +24,22 @@ const localRequest = (url, { method = "GET", headers, body } = {}) => new Promis
   req.end(body);
 });
 
-test("Qwen request contains the actual supplied image and bilingual schema", () => {
+test("Qwen analyzes the actual image in English without requesting Khmer generation", () => {
   const request = buildQwenRequest({ image, detail: "concise", preset: "faithful" });
   assert.equal(request.messages[1].content[1].image_url.url, image);
   assert.equal(request.chat_template_kwargs.enable_thinking, false);
   assert.equal(request.response_format.schema.required.includes("sections"), true);
-  assert.equal(Object.keys(request.response_format.schema.properties.summary.properties)[0], "en");
+  assert.equal(request.response_format.schema.properties.summary.type, "string");
+  assert.match(request.messages[0].content, /English only/);
+  assert.doesNotMatch(request.messages[0].content, /[\u1780-\u17ff]/);
+  assert.ok(request.max_tokens < 3600);
   assert.equal("api_key" in request, false);
 });
-test("Qwen response parser rejects truncated and malformed bilingual descriptions", () => {
+test("Qwen response parser rejects truncated, missing and obsolete bilingual descriptions", () => {
   assert.throws(() => parseQwenResponse({ choices: [{ finish_reason: "length" }] }));
   assert.throws(() => parseQwenResponse({ choices: [{ message: { content: "{}" } }] }));
   assert.deepEqual(parseQwenResponse(payload), fixture);
+  assert.throws(() => parseQwenResponse({ choices: [{ message: { content: JSON.stringify({ ...fixture, summary: { en: "English", km: "ខ្មែរ" } }) } }] }));
 });
 test("remote image URLs cannot trigger local SSRF", () => {
   assert.throws(() => validateLocalInput({ image: "http://127.0.0.1/private" }));

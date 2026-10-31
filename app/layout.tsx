@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "ចិត្រា AI — ពិពណ៌នារូបភាព",
   description:
-    "ពិពណ៌នារូបភាពលម្អិតជាភាសាខ្មែរ និងអង់គ្លេស ដោយផ្អែកលើអ្វីដែលមើលឃើញពិតប្រាកដ។",
+    "ពិពណ៌នារូបភាពជា English ដោយផ្អែកលើភស្តុតាង ហើយបកប្រែខ្មែរតាម Google Translate នៅពេលត្រូវការ។",
   icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
 };
 

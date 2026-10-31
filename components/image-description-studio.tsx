@@ -5,14 +5,14 @@ import {
   LoaderCircle, RefreshCw, ShieldCheck, Sparkles, Upload, X,
 } from "lucide-react";
 import { ChangeEvent, DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { descriptionText, googleTranslateUrl, MAX_TRANSLATION_CHARACTERS } from "@/lib/translation.mjs";
 
-type Bilingual = { km: string; en: string };
 type SectionKey = "appearance" | "clothing" | "pose" | "composition" | "style" | "mood";
 type Result = {
-  summary: Bilingual;
-  sections: Record<SectionKey, Bilingual>;
-  evidence: { confirmed: Bilingual[]; uncertain: Bilingual[] };
-  prompt: Bilingual;
+  summary: string;
+  sections: Record<SectionKey, string>;
+  evidence: { confirmed: string[]; uncertain: string[] };
+  prompt: string;
 };
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -57,15 +57,16 @@ export function ImageDescriptionStudio() {
   const [customInstructions, setCustomInstructions] = useState("");
   const [result, setResult] = useState<Result | null>(null);
   const [model, setModel] = useState("");
-  const [language, setLanguage] = useState<"km" | "en">("km");
   const [prompt, setPrompt] = useState("");
+  const [translationScope, setTranslationScope] = useState<"prompt" | "summary" | "all">("prompt");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState("");
   const [provider, setProvider] = useState<"qwen" | "openai">("qwen");
   const [localState, setLocalState] = useState<"unknown" | "checking" | "ready" | "offline">("unknown");
   const requestRef = useRef<AbortController | null>(null);
-  const promptDrafts = useRef({ km: "", en: "" });
+  const translationText = result ? translationScope === "prompt" ? prompt : translationScope === "summary" ? result.summary : descriptionText(result, prompt) : "";
+  const translationUrl = googleTranslateUrl(translationText);
 
   const checkLocal = async () => {
     setLocalState("checking");
@@ -132,8 +133,7 @@ export function ImageDescriptionStudio() {
       if (!response.ok) throw new Error(payload.error || "ការវិភាគបរាជ័យ។");
       if (!payload.description) throw new Error("Model មិនបានផ្តល់ការពិពណ៌នាទេ។");
       setResult(payload.description); setModel(payload.model || "Vision model");
-      promptDrafts.current = { ...payload.description.prompt };
-      setPrompt(payload.description.prompt[language]); setStatus("success");
+      setPrompt(payload.description.prompt); setStatus("success"); setTranslationScope("prompt");
       if (provider === "qwen") setLocalState("ready");
       window.setTimeout(() => document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
     } catch (cause) {
@@ -165,7 +165,7 @@ export function ImageDescriptionStudio() {
       <section className="hero" id="top">
         <div className="eyebrow"><span className="live-dot" /> VISION STUDIO · KHMER FIRST</div>
         <h1>មើលរូបភាព។<br /><em>ពិពណ៌នាឲ្យច្បាស់។</em></h1>
-        <p>បម្លែងរូបភាពទៅជាការពិពណ៌នាដែលមានរចនាសម្ព័ន្ធ ជាភាសាខ្មែរ និងអង់គ្លេស—ផ្អែកតែលើអ្វីដែលអាចមើលឃើញ។</p>
+        <p>ពិពណ៌នារូបភាពលម្អិតជា English ដោយផ្អែកលើអ្វីដែលមើលឃើញ។ បកប្រែជាខ្មែរតាម Google Translate នៅពេលអ្នកត្រូវការ។</p>
       </section>
 
       <section className="workspace" aria-label="Image analysis workspace">
@@ -210,7 +210,7 @@ export function ImageDescriptionStudio() {
               <div><span role="status">{localState === "ready" ? "● Qwen រួចរាល់" : localState === "checking" ? "កំពុងពិនិត្យ…" : localState === "offline" ? "○ មិនទាន់ភ្ជាប់ / កំពុងបើក model" : "○ សូមបើក local model ជាមុន"}</span><button type="button" onClick={checkLocal} disabled={localState === "checking"}>ពិនិត្យការភ្ជាប់</button></div>
               <p>បើក <a href="/Start-Chitra-Qwen.cmd" download>Start-Chitra-Qwen.cmd</a> លើ PC ដែលបានដំឡើង។ បន្ទាប់មកចុចពិនិត្យការភ្ជាប់។</p>
               <p>បើ browser រារាំងការភ្ជាប់ សូម <a href="http://127.0.0.1:5173/">បើកកម្មវិធីលើ PC</a>។</p>
-              <p>Qwen 4B ពិពណ៌នាអង់គ្លេសបានល្អជាងខ្មែរ។ ភាសាខ្មែរអាចមានពាក្យខុស ឬស្ទួនច្រើន; សូមពិនិត្យជាមួយ English។</p>
+              <p>EN ONLY · Qwen សរសេរតែ English ដើម្បីកាត់បន្ថយពេលបង្កើតអត្ថបទ។ ប៊ូតុងបកប្រែខ្មែរមិនប្រើ GPU របស់អ្នកទេ។</p>
             </div>}
           </div>
           <fieldset className="control-group">
@@ -244,7 +244,7 @@ export function ImageDescriptionStudio() {
 
       {status === "loading" && <section className="processing" aria-live="polite">
         <div className="scan-card"><div className="scan-line" /><ImageIcon size={30} /></div>
-        <div><strong>កំពុងពិនិត្យភស្តុតាងក្នុងរូបភាព</strong><span>{provider === "qwen" ? "Qwen3.5‑4B is analyzing on your PC. Detailed bilingual output may take a few minutes." : "Analyzing appearance, pose, composition, style and mood…"}</span></div>
+        <div><strong>កំពុងពិនិត្យភស្តុតាងក្នុងរូបភាព</strong><span>{provider === "qwen" ? "Qwen3.5‑4B is generating English only on your PC." : "Analyzing appearance, pose, composition, style and mood in English…"}</span></div>
       </section>}
       {status === "error" && error && <section className="error-card" role="alert">
         <AlertCircle size={20} /><div><strong>មិនអាចបញ្ចប់ការវិភាគបានទេ</strong><p>{error}</p></div><button type="button" onClick={analyze}>សាកម្តងទៀត</button>
@@ -253,29 +253,40 @@ export function ImageDescriptionStudio() {
       {result && status === "success" && <section className="results" id="results">
         <div className="results-heading">
           <div><span className="step">03</span><h2>លទ្ធផលពិពណ៌នា</h2><small>STRUCTURED DESCRIPTION · {model}</small></div>
-          <div className="language-toggle" aria-label="ភាសាលទ្ធផល">
-            <button type="button" className={language === "km" ? "selected" : ""} onClick={() => { setLanguage("km"); setPrompt(promptDrafts.current.km); }}>ខ្មែរ</button>
-            <button type="button" className={language === "en" ? "selected" : ""} onClick={() => { setLanguage("en"); setPrompt(promptDrafts.current.en); }}>English</button>
-          </div>
+          <span className="english-badge" lang="en">ENGLISH ONLY</span>
         </div>
+        <details className="translation-panel">
+          <summary>បកប្រែជាខ្មែរ <span>Google Translate ↗</span></summary>
+          <div className="translation-content">
+            <label htmlFor="translation-scope">ជ្រើសអត្ថបទសម្រាប់បកប្រែ</label>
+            <select id="translation-scope" value={translationScope} onChange={event => setTranslationScope(event.target.value as "prompt" | "summary" | "all")}>
+              <option value="prompt">Prompt ដែលបានកែសម្រួល</option>
+              <option value="summary">សេចក្តីសង្ខេប · Overview</option>
+              <option value="all">ការពិពណ៌នាទាំងមូល · Full description</option>
+            </select>
+            <textarea aria-label="Text to translate" lang="en" readOnly value={translationText} rows={5} />
+            <p>ពេលចុចប៊ូតុងខាងក្រោម អត្ថបទនេះនឹងផ្ញើទៅ Google Translate ក្នុង tab ថ្មី។ រូបភាពមិនផ្ញើទៅ Google ទេ ហើយការបកប្រែមិនប្រើ Qwen ឬ GPU របស់ PC។</p>
+            {translationUrl ? <a className="translate-link" href={translationUrl} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">បើក Google Translate · English → ខ្មែរ ↗</a> : <p role="status">អត្ថបទមាន {translationText.length.toLocaleString()} តួអក្សរ។ សូមជ្រើស Prompt ឬសេចក្តីសង្ខេប ដែលមានមិនលើស {MAX_TRANSLATION_CHARACTERS.toLocaleString()} តួអក្សរ។</p>}
+          </div>
+        </details>
         <article className="summary-card">
           <div className="summary-label"><Sparkles size={16} /> សេចក្តីសង្ខេប <span>OVERVIEW</span></div>
-          <p>{result.summary[language]}</p>
-          <button type="button" className="copy-corner" onClick={() => copyText(result.summary[language], "summary")} aria-label="ចម្លងសេចក្តីសង្ខេប">{copied === "summary" ? <Check size={17} /> : <Copy size={17} />}</button>
+          <p lang="en">{result.summary}</p>
+          <button type="button" className="copy-corner" onClick={() => copyText(result.summary, "summary")} aria-label="ចម្លងសេចក្តីសង្ខេប">{copied === "summary" ? <Check size={17} /> : <Copy size={17} />}</button>
         </article>
         <div className="section-grid">{(Object.keys(sectionLabels) as SectionKey[]).map((key, index) => (
           <article className="result-card" key={key}>
             <div className="result-card-head"><span>{String(index + 1).padStart(2, "0")}</span><h3>{sectionLabels[key][0]}<small>{sectionLabels[key][1]}</small></h3></div>
-            <p>{result.sections[key][language]}</p>
+            <p lang="en">{result.sections[key]}</p>
           </article>
         ))}</div>
         <div className="evidence-grid">
-          <article className="evidence-card confirmed"><h3><Check size={18} /> អ្វីដែលមើលឃើញច្បាស់ <small>CONFIRMED EVIDENCE</small></h3><ul>{result.evidence.confirmed.map((item, i) => <li key={i}>{item[language]}</li>)}</ul></article>
-          <article className="evidence-card uncertain"><h3><AlertCircle size={18} /> ចំណុចមិនច្បាស់ <small>CALIBRATED UNCERTAINTY</small></h3>{result.evidence.uncertain.length ? <ul>{result.evidence.uncertain.map((item, i) => <li key={i}>{item[language]}</li>)}</ul> : <p>មិនមានចំណុចមិនច្បាស់សំខាន់ទេ។</p>}</article>
+          <article className="evidence-card confirmed"><h3><Check size={18} /> អ្វីដែលមើលឃើញច្បាស់ <small>CONFIRMED EVIDENCE</small></h3><ul lang="en">{result.evidence.confirmed.map((item, i) => <li key={i}>{item}</li>)}</ul></article>
+          <article className="evidence-card uncertain"><h3><AlertCircle size={18} /> ចំណុចមិនច្បាស់ <small>CALIBRATED UNCERTAINTY</small></h3>{result.evidence.uncertain.length ? <ul lang="en">{result.evidence.uncertain.map((item, i) => <li key={i}>{item}</li>)}</ul> : <p lang="en">No material visual ambiguity noted.</p>}</article>
         </div>
         <article className="prompt-card">
           <div className="prompt-heading"><div><Clipboard size={18} /><h3>Prompt អាចកែសម្រួលបាន<small>EDITABLE RECONSTRUCTION PROMPT</small></h3></div><button type="button" onClick={() => copyText(prompt, "prompt")}>{copied === "prompt" ? <><Check size={16} /> បានចម្លង</> : <><Copy size={16} /> ចម្លង Prompt</>}</button></div>
-          <textarea value={prompt} onChange={(e) => { setPrompt(e.target.value); promptDrafts.current[language] = e.target.value; }} aria-label="Editable prompt" rows={8} />
+          <textarea lang="en" value={prompt} onChange={(e) => setPrompt(e.target.value)} aria-label="Editable prompt" rows={8} />
           <p>កែសម្រួលបានដោយសេរី មុនពេលយកទៅប្រើក្នុង image generator។</p>
         </article>
       </section>}

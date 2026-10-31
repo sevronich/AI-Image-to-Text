@@ -1,6 +1,16 @@
 # ចិត្រា AI — Image Description Studio
 
-A full-stack, Khmer-first image description app. The default provider is **Qwen3.5-4B running on your own Windows PC**, downloaded from Hugging Face. OpenAI remains an explicitly selected cloud option. Both providers use real vision inference and the same bilingual result format.
+A full-stack image description app with a Khmer-first interface and **English-only AI output**. The default provider is **Qwen3.5-4B running on your own Windows PC**, downloaded from Hugging Face. OpenAI remains an explicitly selected cloud option. Both providers use real vision inference and the same English result format.
+
+## Optional Khmer translation
+
+After analysis, expand **បកប្រែជាខ្មែរ · Google Translate**. Choose the edited prompt, overview, or full description, review the text, then open Google Translate. It opens a new tab with English → Khmer selected. Only the selected text is sent to Google when the user clicks the link; no image is sent. Translation does not call Qwen, use local GPU inference, require an API key, or run automatically. Google handles translation under its own service terms and privacy policy.
+
+The app caps translation links at 5,000 characters and asks the user to choose a shorter scope rather than silently truncating. Editing the prompt updates the text sent for prompt translation. Khmer translations remain machine-generated and should be reviewed.
+
+English-only generation reduces output tokens and decode work; model weight memory and image-processing memory are largely unchanged. It does not guarantee a lower peak VRAM allocation.
+
+The exact attached 1152×2048 anime image completed a real English-only concise test in 18 seconds on the original GTX 1660 Ti. The output identified the garment layers, raised hand, and gray grid background. Timings vary by image, detail setting, and other running applications; this is one observed run, not a performance guarantee.
 
 ## Qwen3.5-4B on this PC
 
@@ -30,12 +40,12 @@ Do not expose either local port to the public internet. No tunnel, firewall open
 
 The initial unsigned llama.cpp build was rejected by Windows Code Integrity. This was resolved by switching to the digitally signed runtime distributed by Ollama. All 38 executable/DLL signatures were verified as valid, the runtime started successfully, and it detected the GTX 1660 Ti as Vulkan0. Windows security policy was not modified. `scripts/start-qwen.mjs` explicitly selects Vulkan0 on this PC.
 
-Both Hugging Face model files passed SHA-256 verification. A real reference-image smoke test completed in 41 seconds on this GPU, and the browser flow produced structured results. English identified the hair, garment layers, pose, and background. Khmer output contained substantial mistranslation and repetition even with English-first generation and terminology guidance; it must be reviewed and is not comparable to ChatGPT quality. The UI displays this limitation. The hosted page could not reach loopback in the in-app browser; use the local app in that situation.
+Both Hugging Face model files passed SHA-256 verification. The initial bilingual reference-image test completed in 41 seconds, but local Khmer output had substantial mistranslation and repetition. AI generation now produces English only, and Khmer translation is an explicit Google Translate action. The hosted page could not reach loopback in the in-app browser; use the local app in that situation.
 
 ## Architecture
 
 - **UI:** Next.js 16 + React 19, built and deployed through Vinext on Cloudflare Workers/Sites.
-- **Qwen backend:** browser → loopback Node bridge → authenticated local llama.cpp vision server. Grammar-constrained JSON and response validation preserve the existing Khmer/English sections and evidence fields.
+- **Qwen backend:** browser → loopback Node bridge → authenticated local llama.cpp vision server. Grammar-constrained JSON and response validation return English summary, sections, evidence, and prompt strings, without generating a second language.
 - **Optional OpenAI backend:** `POST /api/describe` calls the OpenAI Responses API. `OPENAI_API_KEY` stays server-side. Only choosing OpenAI sends an image to that provider.
 - **Cloud runtime:** Cloudflare Workers hosts the UI and optional cloud API; model weights are never placed in the Worker, source ZIP, or published assets.
 
@@ -45,7 +55,7 @@ Run `npm run install:ci`, `npm run qwen`, and `npm run dev` in separate terminal
 
 ## Quality checks
 
-Run `npm test` and `npm run build`. Tests cover the local request adapter, bilingual result validation, truncated output, image payload limits, CORS/Origin/Host rejection, preflight, and provider error handling. Test fixtures are used only in tests; the product has no simulated description path.
+Run `npm test` and `npm run build`. Tests cover English-only requests and result validation, rejection of the obsolete bilingual format, truncated output, image payload limits, CORS/Origin/Host rejection, preflight, provider errors, and translation URL destination/encoding/length limits. Test fixtures are used only in tests; the product has no simulated description path. `node scripts/smoke-qwen.mjs [optional-image.png]` runs a real inference test on the installed model.
 
 Supported image formats: PNG, JPEG, WEBP, and GIF. The app rejects files larger than 10MB in the browser and oversized requests on the server.
 
