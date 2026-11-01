@@ -11,32 +11,11 @@ import { createRequestSession } from "@/lib/request-session.mjs";
 import { validateDescription } from "@/lib/description-result.mjs";
 
 type SectionKey = "appearance" | "clothing" | "pose" | "composition" | "style" | "mood";
-type AnatomyEntry = {
-  region: string;
-  visibility: string;
-  attributes?: string[];
-  description?: string;
-  evidence?: string;
-  uncertainty?: string | null;
-};
-type AdvancedSubject = {
-  id: string;
-  subject_type?: string;
-  pose?: { orientation?: string; description?: string };
-  anatomy?: AnatomyEntry[];
-};
 type Result = {
   summary: string;
   sections: Record<SectionKey, string>;
   evidence: { confirmed: string[]; uncertain: string[] };
   prompt: string;
-  // Optional v2.0 advanced fields — absent on every v1 response.
-  advanced?: boolean;
-  schema_version?: string;
-  subjects?: AdvancedSubject[];
-  spatial_relationships?: Array<{ between?: string[]; description?: string } | string>;
-  verified_observations?: string[];
-  uncertain_observations?: string[];
 };
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -90,9 +69,6 @@ export function ImageDescriptionStudio() {
   const [copied, setCopied] = useState("");
   const [provider, setProvider] = useState<"qwen" | "openai">("qwen");
   const [localState, setLocalState] = useState<"unknown" | "checking" | "ready" | "offline">("unknown");
-  // Advanced anatomy mode (schema v2.0) — supported by the local Qwen path only.
-  const [advancedMode, setAdvancedMode] = useState(false);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const requestSession = useRef(createRequestSession());
   const translationText = result ? translationScope === "prompt" ? prompt : translationScope === "summary" ? result.summary : descriptionText(result, prompt) : "";
   const translationUrl = googleTranslateUrl(translationText);
@@ -175,7 +151,7 @@ export function ImageDescriptionStudio() {
       const response = await fetch(provider === "qwen" ? "http://127.0.0.1:8765/describe" : "/api/describe", {
         method: "POST", headers: { "Content-Type": "application/json" },
         signal: token.signal,
-        body: JSON.stringify({ image: preparedImage, preset, detail, customInstructions, advanced: provider === "qwen" && advancedMode && detail === "deep" }),
+        body: JSON.stringify({ image: preparedImage, preset, detail, customInstructions }),
       });
       const payload = await response.json() as { description?: Result; model?: string; error?: string };
       if (!token.isCurrent()) return;
@@ -185,8 +161,6 @@ export function ImageDescriptionStudio() {
       validateDescription(payload.description, { submittedTexts: [customInstructions] });
       const generatedPrompt = payload.description.prompt;
       setResult(payload.description); setModel(payload.model || "Vision model");
-      // Advanced v2.0 fields are optional; reset the per-run view state.
-      setAdvancedOpen(false);
       setPrompt(generatedPrompt); setStatus("success"); setTranslationScope("prompt");
       if (provider === "qwen") setLocalState("ready");
       window.setTimeout(() => { if (token.isCurrent()) document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" }); }, 80);
@@ -288,12 +262,6 @@ export function ImageDescriptionStudio() {
               </button>
             ))}</div>
           </fieldset>
-          {provider === "qwen" && <label className={`advanced-toggle${detail === "deep" ? "" : " unavailable"}`}>
-            <input type="checkbox" checked={advancedMode && detail === "deep"} disabled={status === "loading" || detail !== "deep"}
-              onChange={(e) => setAdvancedMode(e.target.checked)} />
-            <span>Anatomy Advanced <small>V2 · ត្រូវការ Deep</small></span>
-            <em>{detail === "deep" ? "បន្ថែម region anatomy, visibility states និង subject tracking។" : "សកម្មបានតែពេលជ្រើស Level of detail = លម្អិតខ្លាំង (Deep)។"}</em>
-          </label>}
           <label className="instructions-label">
             <span>ការណែនាំបន្ថែម <small>OPTIONAL</small></span>
             <textarea value={customInstructions} disabled={status === "loading"} onChange={(e) => setCustomInstructions(e.target.value.slice(0, 800))} placeholder="ឧ. ផ្តោតលើពន្លឺ និងសម្លៀកបំពាក់..." rows={3} />
@@ -348,27 +316,6 @@ export function ImageDescriptionStudio() {
           <article className="evidence-card confirmed"><h3><Check size={18} /> អ្វីដែលមើលឃើញច្បាស់ <small>CONFIRMED EVIDENCE</small></h3><ul lang="en">{result.evidence.confirmed.map((item, i) => <li key={i}>{item}</li>)}</ul></article>
           <article className="evidence-card uncertain"><h3><AlertCircle size={18} /> ចំណុចមិនច្បាស់ <small>CALIBRATED UNCERTAINTY</small></h3>{result.evidence.uncertain.length ? <ul lang="en">{result.evidence.uncertain.map((item, i) => <li key={i}>{item}</li>)}</ul> : <p lang="en">No material visual ambiguity noted.</p>}</article>
         </div>
-        {result.advanced === true && Array.isArray(result.subjects) && result.subjects.length > 0 && <details className="advanced-panel" open={advancedOpen} onToggle={(e) => setAdvancedOpen((e.target as HTMLDetailsElement).open)}>
-          <summary>Anatomy Advanced <span>v{result.schema_version || "2.0"} · {result.subjects.length} subject(s)</span></summary>
-          <div className="advanced-content" lang="en">
-            {result.subjects.map((subject) => <article className="subject-card" key={subject.id}>
-              <h4>{subject.id.replace(/_/g, " ")}{subject.subject_type ? <small>{subject.subject_type}</small> : null}</h4>
-              {subject.pose?.description && <p className="subject-pose"><strong>Pose:</strong> {subject.pose.orientation ? `${subject.pose.orientation}. ` : ""}{subject.pose.description}</p>}
-              {(subject.anatomy || []).length > 0 && <ul className="anatomy-list">{subject.anatomy!.map((entry, i) => (
-                <li key={`${subject.id}-${entry.region}-${i}`}>
-                  <span className={`visibility-badge vis-${entry.visibility}`}>{entry.visibility.replace(/_/g, " ")}</span>
-                  <strong>{entry.region.replace(/_/g, " ")}</strong>
-                  {entry.description ? ` — ${entry.description}` : ""}
-                  {Array.isArray(entry.attributes) && entry.attributes.length > 0 && <em> [{entry.attributes.join("; ")}]</em>}
-                  {entry.uncertainty && <small className="region-uncertainty"> Uncertainty: {entry.uncertainty}</small>}
-                </li>
-              ))}</ul>}
-            </article>)}
-            {Array.isArray(result.spatial_relationships) && result.spatial_relationships.length > 0 && <div className="advanced-list-block"><h5>Spatial relationships</h5><ul>{result.spatial_relationships.map((item, i) => <li key={i}>{typeof item === "string" ? item : [item?.between?.join(" ↔ "), item?.description].filter(Boolean).join(": ")}</li>)}</ul></div>}
-            {Array.isArray(result.verified_observations) && result.verified_observations.length > 0 && <div className="advanced-list-block verified"><h5>Re-verified against the image</h5><ul>{result.verified_observations.map((item, i) => <li key={i}>{item}</li>)}</ul></div>}
-            {Array.isArray(result.uncertain_observations) && result.uncertain_observations.length > 0 && <div className="advanced-list-block uncertain"><h5>Uncertain observations</h5><ul>{result.uncertain_observations.map((item, i) => <li key={i}>{item}</li>)}</ul></div>}
-          </div>
-        </details>}
         <article className="prompt-card">
           <div className="prompt-heading"><div><Clipboard size={18} /><h3>Prompt សម្រាប់បង្កើតរូបឡើងវិញ<small>EDITABLE RECONSTRUCTION PROMPT</small></h3></div><button type="button" onClick={() => copyText(prompt, "prompt")}>{copied === "prompt" ? <><Check size={16} /> បានចម្លង</> : <><Copy size={16} /> ចម្លង Prompt</>}</button></div>
           <textarea lang="en" value={prompt} onChange={(e) => setPrompt(e.target.value)} aria-label="Editable prompt" rows={8} />
