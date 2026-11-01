@@ -161,6 +161,8 @@ export function ImageDescriptionStudio() {
       validateDescription(payload.description, { submittedTexts: [customInstructions] });
       const generatedPrompt = payload.description.prompt;
       setResult(payload.description); setModel(payload.model || "Vision model");
+      // Advanced v2.0 fields are optional; reset the per-run view state.
+      setAdvancedOpen(false);
       setPrompt(generatedPrompt); setStatus("success"); setTranslationScope("prompt");
       if (provider === "qwen") setLocalState("ready");
       window.setTimeout(() => { if (token.isCurrent()) document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" }); }, 80);
